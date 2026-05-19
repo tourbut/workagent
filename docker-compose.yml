@@ -1,10 +1,15 @@
-# workagent — Mattermost + hermes-agent 통합 스택
+# workagent — Mattermost + (hermes-agent | openclaw) 통합 스택
 #
 # 운영 규범: .agents/AGENTS.md
 # - 데이터 볼륨은 ./volumes/ 바인드 마운트 (커밋 금지)
 # - 시크릿은 .env (커밋 금지). 키 카탈로그는 .env.example
 # - 기동: docker compose up -d   /   상태: docker compose ps
 # - 절대 금지: docker compose down -v  (DB·업로드 손실)
+#
+# 에이전트 토글: .env 의 COMPOSE_PROFILES 로 선택
+#   COMPOSE_PROFILES=hermes    → hermes-agent 만 기동
+#   COMPOSE_PROFILES=openclaw  → openclaw 만 기동
+#   COMPOSE_PROFILES=hermes,openclaw → 둘 다 (각자 별도 봇 토큰 필요)
 
 services:
   postgres:
@@ -23,7 +28,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -71,13 +76,14 @@ services:
       MM_TEAMSETTINGS_CUSTOMBRANDTEXT: ${MM_CUSTOM_BRAND_TEXT:-}
       MM_TEAMSETTINGS_CUSTOMDESCRIPTIONTEXT: ${MM_CUSTOM_DESCRIPTION_TEXT:-}
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8065/api/v4/system/ping || exit 1"]
+      test: [ "CMD-SHELL", "curl -fsS http://localhost:8065/api/v4/system/ping || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 90s
 
   hermes-agent:
+    profiles: [ "hermes" ]
     depends_on:
       mattermost:
         condition: service_healthy
@@ -111,7 +117,38 @@ services:
       MATTERMOST_HOME_CHANNEL: ${MATTERMOST_HOME_CHANNEL:-}
       MATTERMOST_ALLOWED_CHANNELS: ${MATTERMOST_ALLOWED_CHANNELS:-}
       MATTERMOST_FREE_RESPONSE_CHANNELS: ${MATTERMOST_FREE_RESPONSE_CHANNELS:-}
-    command: ["gateway", "run"]
+    command: [ "gateway", "run" ]
+
+  openclaw:
+    profiles: [ "openclaw" ]
+    image: ghcr.io/openclaw/openclaw:${OPENCLAW_IMAGE_TAG:-latest}
+    container_name: workagent-openclaw
+    restart: ${RESTART_POLICY:-unless-stopped}
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - stack
+    # 공식 이미지의 데이터 디렉터리: /home/node/.openclaw
+    #   (auth 캐시·세션·상태 보존). config.json 은 그 안에 ro 로 별도 마운트.
+    volumes:
+      - ./volumes/openclaw:/home/node/.openclaw
+      - ./config/openclaw/config.json:/home/node/.openclaw/config.json:ro
+    # Control UI 는 기본적으로 외부 노출하지 않음.
+    # 필요하면 docker-compose.override.yml 에서 18789 포트를 노출한다.
+    # ports:
+    #   - "${OPENCLAW_UI_PORT:-18789}:18789"
+    environment:
+      TZ: ${TZ:-Asia/Seoul}
+      # Docker bridge 환경에서 mDNS(bonjour) 비활성
+      OPENCLAW_DISABLE_BONJOUR: ${OPENCLAW_DISABLE_BONJOUR:-1}
+      # ── LLM: OpenRouter ─────────────────────────────────────
+      # 모델/베이스URL 은 config/openclaw/config.json 의 agents.defaults.model 에서 관리
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      # ── Mattermost 어댑터 ───────────────────────────────────
+      # OpenClaw 의 default 계정은 env 두 개로만 설정된다.
+      # 나머지(replyToMode/chatmode/groups 등)는 config 파일에서 관리.
+      MATTERMOST_URL: ${MATTERMOST_URL:-http://mattermost:8065}
+      MATTERMOST_BOT_TOKEN: ${MATTERMOST_TOKEN}
 
 networks:
   stack:
