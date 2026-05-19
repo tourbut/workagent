@@ -43,8 +43,12 @@ services:
     restart: ${RESTART_POLICY:-unless-stopped}
     security_opt:
       - no-new-privileges:true
+    # network alias: openclaw 의 SSRF 보호가 .localhost 접미사를 loopback 으로 자동 처리
+    # → openclaw 가 http://mattermost.localhost:8065 으로 붙도록 alias 부여.
     networks:
-      - stack
+      stack:
+        aliases:
+          - mattermost.localhost
     ports:
       - "${MATTERMOST_PORT:-8065}:8065"
     volumes:
@@ -129,20 +133,30 @@ services:
     networks:
       - stack
     # 공식 이미지의 데이터 디렉터리: /home/node/.openclaw
-    #   (auth 캐시·세션·상태 보존). config.json 은 그 안에 ro 로 별도 마운트.
+    #   (auth 캐시·세션·상태 보존). 설정 파일명은 공식 표준인 openclaw.json (config.json 아님).
     volumes:
       - ./volumes/openclaw:/home/node/.openclaw
-      - ./config/openclaw/config.json:/home/node/.openclaw/config.json:ro
+      - ./config/openclaw/openclaw.json:/home/node/.openclaw/openclaw.json:ro
     # Control UI 는 기본적으로 외부 노출하지 않음.
     # 필요하면 docker-compose.override.yml 에서 18789 포트를 노출한다.
     # ports:
     #   - "${OPENCLAW_UI_PORT:-18789}:18789"
     environment:
       TZ: ${TZ:-Asia/Seoul}
+      # ── 경로 ───────────────────────────────────────────────
+      # 공식 docker 예제 표준. state 디렉터리·config 파일 위치를 명시.
+      HOME: /home/node
+      OPENCLAW_STATE_DIR: /home/node/.openclaw
+      OPENCLAW_CONFIG_PATH: /home/node/.openclaw/openclaw.json
       # Docker bridge 환경에서 mDNS(bonjour) 비활성
       OPENCLAW_DISABLE_BONJOUR: ${OPENCLAW_DISABLE_BONJOUR:-1}
+      # 컨테이너 환경에서는 gateway bind=auto 강제 → 토큰 필수
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      # SSRF 우회 (break-glass) — 사설 망의 self-hosted Mattermost 접근을 위해.
+      # OpenClaw 의 SSRF 보호가 docker 내부 hostname 의 사설 IP 를 차단하므로 필요.
+      OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: "1"
       # ── LLM: OpenRouter ─────────────────────────────────────
-      # 모델/베이스URL 은 config/openclaw/config.json 의 agents.defaults.model 에서 관리
+      # 모델/베이스URL 은 config/openclaw/openclaw.json 의 agents.defaults.model 에서 관리
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       # ── Mattermost 어댑터 ───────────────────────────────────
       # OpenClaw 의 default 계정은 env 두 개로만 설정된다.
