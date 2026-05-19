@@ -55,6 +55,21 @@ services:
       MM_SQLSETTINGS_DATASOURCE: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable&connect_timeout=10"
       MM_BLEVESETTINGS_INDEXDIR: /mattermost/bleve-indexes
       MM_SERVICESETTINGS_SITEURL: ${MM_SERVICESETTINGS_SITEURL:-http://localhost:8065}
+      # ── 로컬라이제이션: 기본 한국어 ──────────────────────────
+      MM_LOCALIZATIONSETTINGS_DEFAULTSERVERLOCALE: ${MM_DEFAULT_LOCALE:-ko}
+      MM_LOCALIZATIONSETTINGS_DEFAULTCLIENTLOCALE: ${MM_DEFAULT_LOCALE:-ko}
+      MM_LOCALIZATIONSETTINGS_AVAILABLELOCALES: ${MM_AVAILABLE_LOCALES:-}
+      # ── 플러그인: Calls 비활성화 ────────────────────────────
+      # PluginStates 는 JSON. 여러 플러그인을 한 번에 명시한다.
+      MM_PLUGINSETTINGS_PLUGINSTATES: '{"com.mattermost.calls":{"Enable":false}}'
+      # ── 커스텀 브랜딩 ─────────────────────────────────────
+      # 활성화하면 로그인 화면에 사이트명·브랜드 텍스트·로고 이미지가 노출된다.
+      # 로고 이미지 자체는 환경변수로 주입 불가 → 최초 로그인 후 System Console 에서 업로드
+      # 또는 volumes/mattermost/data/brand/image.png 에 파일을 직접 배치 (init-volumes.sh 가 자동 복사)
+      MM_TEAMSETTINGS_ENABLECUSTOMBRAND: "true"
+      MM_TEAMSETTINGS_SITENAME: ${MM_SITE_NAME:-workagent}
+      MM_TEAMSETTINGS_CUSTOMBRANDTEXT: ${MM_CUSTOM_BRAND_TEXT:-}
+      MM_TEAMSETTINGS_CUSTOMDESCRIPTIONTEXT: ${MM_CUSTOM_DESCRIPTION_TEXT:-}
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8065/api/v4/system/ping || exit 1"]
       interval: 30s

@@ -11,7 +11,7 @@
 | 서비스 | 이미지 | 역할 |
 |---|---|---|
 | `postgres` | `postgres:15-alpine` | Mattermost 백엔드 DB |
-| `mattermost` | `mattermost/mattermost-team-edition:10.5` | 메신저 서버 (호스트 `:8065` 노출) |
+| `mattermost` | `mattermost/mattermost-team-edition:10.5` | 메신저 서버 (호스트 `:8065`). **Calls 비활성·기본 한국어·커스텀 브랜딩 활성** 으로 초기화 |
 | `hermes-agent` | `nousresearch/hermes-agent:latest` (공식 이미지) | Mattermost 봇 어댑터 (`gateway run`). LLM 공급자: OpenRouter |
 
 세 서비스는 `workagent-stack` 브리지 네트워크에서만 통신하고, 외부에는 Mattermost 의 `8065` 포트만 노출됩니다.
@@ -45,6 +45,7 @@ chmod 600 .env
 수행 내용:
 - 바인드 마운트 대상 디렉터리(`volumes/postgres`, `volumes/mattermost/*`, `volumes/hermes`) 생성
 - **`.env` 의 `HERMES_INFERENCE_PROVIDER`/`HERMES_INFERENCE_MODEL`/`OPENROUTER_BASE_URL` 값으로 `volumes/hermes/config.yaml` 생성** (이미 있으면 건드리지 않음 — 모델 변경 시 파일 삭제 후 재실행)
+- **`assets/logo.png` 가 있으면 `volumes/mattermost/data/brand/image.png` 로 시드** (커스텀 브랜드 로고)
 - 리눅스 호스트에서는 `volumes/mattermost/*` 의 소유권을 `2000:2000` (Mattermost 이미지의 컨테이너 사용자) 으로 변경
 
 > `OPENROUTER_API_KEY` 는 config.yaml 에 쓰지 않고 컨테이너 환경변수로만 주입됩니다(시크릿 노출 최소화).
@@ -113,6 +114,8 @@ docker compose stop
 ├── .env                       # 실제 시크릿 (커밋 금지)
 ├── .gitignore
 ├── README.md
+├── assets/                    # 로고 등 정적 자산
+│   └── logo.png               # (선택) Mattermost 커스텀 브랜드 로고
 ├── config/
 │   └── hermes-config.template.yaml  # hermes config.yaml 시드 템플릿
 ├── scripts/
@@ -141,6 +144,29 @@ docker compose stop
 - **LLM 호출 실패 (401/402)**: OpenRouter 키가 만료·크레딧 부족일 수 있음. <https://openrouter.ai/keys> 에서 상태 확인 후 `.env` 갱신 → `docker compose up -d --no-deps hermes-agent`.
 - **모델을 바꾸고 싶을 때**: ① `.env` 의 `HERMES_INFERENCE_MODEL` 수정 → ② `rm volumes/hermes/config.yaml` → ③ `./scripts/init-volumes.sh` (config 재시드) → ④ `docker compose up -d --no-deps hermes-agent`. 모델 슬러그는 <https://openrouter.ai/models> 에서 확인.
   - 또는 `volumes/hermes/config.yaml` 의 `model.default` 를 직접 편집해도 됩니다 — 그러면 ④ 만 실행.
+
+## 로고 / 사이트명 / 언어 커스터마이즈
+
+기본 초기 설정은 다음과 같습니다 (compose 에서 고정):
+- **Calls 플러그인 비활성**
+- **기본 서버/클라이언트 언어: 한국어**
+- **커스텀 브랜딩 활성** (`MM_TEAMSETTINGS_ENABLECUSTOMBRAND=true`)
+
+세부 조정은 `.env` 의 아래 키로:
+
+| 키 | 효과 |
+|---|---|
+| `MM_DEFAULT_LOCALE` | 서버/클라이언트 기본 언어 (기본 `ko`) |
+| `MM_AVAILABLE_LOCALES` | 사용자 선택 가능 언어 목록 (콤마 구분, 비우면 전체) |
+| `MM_SITE_NAME` | 로그인 화면 사이트명 (기본 `workagent`) |
+| `MM_CUSTOM_BRAND_TEXT` | 로고 옆에 표시되는 짧은 문구 (최대 500자) |
+| `MM_CUSTOM_DESCRIPTION_TEXT` | 로그인 화면 하단 설명 (최대 1024자) |
+
+**로고 이미지**:
+- `assets/logo.png` (또는 `.jpg`) 를 두고 `./scripts/init-volumes.sh` 실행 → `volumes/mattermost/data/brand/image.png` 로 시드. 즉시 로그인 화면에 노출됩니다.
+- 권장 200–500px, 최대 2MB.
+- 이미 시스템 콘솔에서 업로드한 이미지가 있으면 시드 스크립트는 건드리지 않습니다.
+- 변경 시: 새 파일을 `assets/logo.png` 로 저장 → `rm volumes/mattermost/data/brand/image.png` → `./scripts/init-volumes.sh`.
 
 ---
 

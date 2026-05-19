@@ -62,7 +62,29 @@ else
   echo "seeded: $config_dst (provider=${provider}, default=${model})"
 fi
 
-# ─── 3. Mattermost 볼륨 권한 (Linux 호스트) ──────────────────
+# ─── 3. Mattermost 커스텀 브랜드 로고 시드 ────────────────────
+# assets/logo.{png,jpg} 가 있으면 volumes/mattermost/data/brand/image.png 로 복사한다.
+# 이미 brand/image 가 있으면 (= 시스템 콘솔에서 업로드한 경우) 건드리지 않는다.
+brand_dir="volumes/mattermost/data/brand"
+brand_dst="$brand_dir/image.png"
+
+if [[ -f "$brand_dst" ]]; then
+  echo "skip: $brand_dst already exists"
+else
+  src=""
+  for cand in assets/logo.png assets/logo.jpg assets/logo.jpeg; do
+    if [[ -f "$cand" ]]; then src="$cand"; break; fi
+  done
+  if [[ -n "$src" ]]; then
+    mkdir -p "$brand_dir"
+    cp "$src" "$brand_dst"
+    echo "seeded: $brand_dst (from $src)"
+  else
+    echo "info: assets/logo.{png,jpg} 가 없어 로고 시드를 건너뜁니다. (System Console 에서 업로드 가능)"
+  fi
+fi
+
+# ─── 4. Mattermost 볼륨 권한 (Linux 호스트) ──────────────────
 # Mattermost 공식 이미지의 컨테이너 사용자 (UID:GID 2000:2000) 에 맞춘다.
 # macOS 의 Docker Desktop 은 자동 매핑하므로 chown 은 생략한다.
 if [[ "$(uname)" == "Linux" ]]; then
