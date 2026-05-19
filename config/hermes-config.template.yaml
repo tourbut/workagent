@@ -1,0 +1,19 @@
+# hermes-agent 설정 템플릿
+# scripts/init-volumes.sh 가 .env 값을 치환해 volumes/hermes/config.yaml 로 생성한다.
+# 플레이스홀더 (@@NAME@@) 는 다음 .env 키로 치환된다:
+#   @@PROVIDER@@   ← HERMES_INFERENCE_PROVIDER (기본: openrouter)
+#   @@MODEL@@      ← HERMES_INFERENCE_MODEL    (기본: anthropic/claude-opus-4.7)
+#   @@BASE_URL@@   ← OPENROUTER_BASE_URL       (기본: 빈 문자열 → 공식 엔드포인트)
+#
+# 이미 volumes/hermes/config.yaml 이 존재하면 init-volumes.sh 는 덮어쓰지 않는다.
+# 모델/공급자를 바꾸려면:
+#   1) .env 의 해당 키 수정
+#   2) volumes/hermes/config.yaml 삭제 (또는 직접 편집)
+#   3) ./scripts/init-volumes.sh 재실행
+#   4) docker compose up -d --no-deps hermes-agent
+
+model:
+  provider: "@@PROVIDER@@"
+  default: "@@MODEL@@"
+  base_url: "@@BASE_URL@@"
+  api_mode: chat_completions
