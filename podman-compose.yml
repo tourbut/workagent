@@ -104,12 +104,12 @@ services:
     # 공식 이미지의 영속 볼륨: /opt/data ← ~/.hermes (config.yaml, .env, sessions, memories, skills, logs)
     volumes:
       - ./volumes/hermes:/opt/data:U,z
-      - ./config/hermes/sslnhimc.cer:/etc/ssl/certs/sslnhimc.cer:ro,z
-      - ./config/hermes/httpx_config.py:/opt/hermes/.venv/lib/python3.13/site-packages/httpx/_config.py:ro,z
-      - ./config/hermes/httpcore_anyio.py:/opt/hermes/.venv/lib/python3.13/site-packages/httpcore/backends/anyio.py:ro,z
-      - ./config/hermes/httpcore_sync.py:/opt/hermes/.venv/lib/python3.13/site-packages/httpcore/backends/sync.py:ro,z
-      - ./config/hermes/urllib3_ssl_.py:/opt/hermes/.venv/lib/python3.13/site-packages/urllib3/util/ssl_.py:ro,z
       - ./config/hermes/memory_tool.py:/opt/hermes/tools/memory_tool.py:ro,z
+      #- ./config/hermes/sslnhimc.cer:/etc/ssl/certs/sslnhimc.cer:ro,z
+      #- ./config/hermes/httpx_config.py:/opt/hermes/.venv/lib/python3.13/site-packages/httpx/_config.py:ro,z
+      #- ./config/hermes/httpcore_anyio.py:/opt/hermes/.venv/lib/python3.13/site-packages/httpcore/backends/anyio.py:ro,z
+      #- ./config/hermes/httpcore_sync.py:/opt/hermes/.venv/lib/python3.13/site-packages/httpcore/backends/sync.py:ro,z
+      #- ./config/hermes/urllib3_ssl_.py:/opt/hermes/.venv/lib/python3.13/site-packages/urllib3/util/ssl_.py:ro,z
     # 게이트웨이 API/대시보드 포트는 기본적으로 외부에 노출하지 않는다.
     # 필요하면 docker-compose.override.yml 에서 ports 를 추가.
     # ports:
@@ -117,9 +117,9 @@ services:
     environment:
       TZ: ${TZ:-Asia/Seoul}
       # ── SSL CA Certificates ──────────────────────────────────
-      SSL_CERT_FILE: /etc/ssl/certs/sslnhimc.cer
-      REQUESTS_CA_BUNDLE: /etc/ssl/certs/sslnhimc.cer
-      CURL_CA_BUNDLE: /etc/ssl/certs/sslnhimc.cer
+      #SSL_CERT_FILE: /etc/ssl/certs/sslnhimc.cer
+      #REQUESTS_CA_BUNDLE: /etc/ssl/certs/sslnhimc.cer
+      #CURL_CA_BUNDLE: /etc/ssl/certs/sslnhimc.cer
       # ── Python Warnings Suppression ─────────────────────────
       PYTHONWARNINGS: "ignore:Unverified HTTPS request"
       # ── LLM: OpenRouter ──────────────────────────────────────
