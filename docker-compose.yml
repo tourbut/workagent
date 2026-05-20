@@ -113,6 +113,8 @@ services:
       SSL_CERT_FILE: /etc/ssl/certs/sslnhimc.cer
       REQUESTS_CA_BUNDLE: /etc/ssl/certs/sslnhimc.cer
       CURL_CA_BUNDLE: /etc/ssl/certs/sslnhimc.cer
+      # ── Python Warnings Suppression ─────────────────────────
+      PYTHONWARNINGS: "ignore:Unverified HTTPS request"
       # ── LLM: OpenRouter ──────────────────────────────────────
       HERMES_INFERENCE_PROVIDER: ${HERMES_INFERENCE_PROVIDER:-openrouter}
       HERMES_INFERENCE_MODEL: ${HERMES_INFERENCE_MODEL}
