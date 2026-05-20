@@ -27,7 +27,7 @@ services:
     networks:
       - stack
     volumes:
-      - ./volumes/postgres:/var/lib/postgresql/data:rw,U,z
+      - ./volumes/postgres:/var/lib/postgresql/data:U,z
     environment:
       TZ: ${TZ:-Asia/Seoul}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -103,7 +103,7 @@ services:
       - stack
     # 공식 이미지의 영속 볼륨: /opt/data ← ~/.hermes (config.yaml, .env, sessions, memories, skills, logs)
     volumes:
-      - ./volumes/hermes:/opt/data:rw,U,z
+      - ./volumes/hermes:/opt/data:U,z
       - ./config/hermes/memory_tool.py:/opt/hermes/tools/memory_tool.py:ro,z
       #- ./config/hermes/mattermost.py:/opt/hermes/gateway/platforms/mattermost.py:ro,z
       #- ./config/hermes/sslnhimc.cer:/etc/ssl/certs/sslnhimc.cer:ro,z
