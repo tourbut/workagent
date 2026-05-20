@@ -58,7 +58,12 @@ services:
     ports:
       - "${MATTERMOST_PORT:-8065}:8065"
     volumes:
-      - ./volumes/mattermost:/mattermost:rw,U,z
+      - ./volumes/mattermost/config:/mattermost/config:rw,U,z
+      - ./volumes/mattermost/data:/mattermost/data:rw,U,z
+      - ./volumes/mattermost/logs:/mattermost/logs:rw,U,z
+      - ./volumes/mattermost/plugins:/mattermost/plugins:rw,U,z
+      - ./volumes/mattermost/client-plugins:/mattermost/client/plugins:rw,U,z
+      - ./volumes/mattermost/bleve-indexes:/mattermost/bleve-indexes:rw,U,z
     environment:
       TZ: ${TZ:-Asia/Seoul}
       MM_SQLSETTINGS_DRIVERNAME: postgres
