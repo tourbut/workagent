@@ -20,7 +20,7 @@
 services:
   postgres:
     image: postgres:${POSTGRES_IMAGE_TAG:-15-alpine}
-    container_name: workagent-postgres
+    container_name: postgres
     restart: ${RESTART_POLICY:-unless-stopped}
     security_opt:
       - no-new-privileges:true
@@ -45,7 +45,7 @@ services:
       postgres:
         condition: service_healthy
     image: mattermost/${MATTERMOST_IMAGE:-mattermost-team-edition}:${MATTERMOST_IMAGE_TAG:-10.5}
-    container_name: workagent-mattermost
+    container_name: mattermost
     restart: ${RESTART_POLICY:-unless-stopped}
     security_opt:
       - no-new-privileges:true
@@ -54,7 +54,7 @@ services:
     networks:
       stack:
         aliases:
-          - mattermost.localhost
+          - mattermost
     ports:
       - "${MATTERMOST_PORT:-8065}:8065"
     volumes:
@@ -95,7 +95,7 @@ services:
   hermes-agent:
     profiles: [ "hermes" ]
     image: nousresearch/hermes-agent:${HERMES_IMAGE_TAG:-latest}
-    container_name: workagent-hermes-agent
+    container_name: hermes-agent
     restart: ${RESTART_POLICY:-unless-stopped}
     security_opt:
       - no-new-privileges:true
@@ -121,7 +121,7 @@ services:
       #REQUESTS_CA_BUNDLE: /etc/ssl/certs/sslnhimc.cer
       #CURL_CA_BUNDLE: /etc/ssl/certs/sslnhimc.cer
       # ── Python Warnings Suppression ─────────────────────────
-      PYTHONWARNINGS: "ignore:Unverified HTTPS request"
+      #PYTHONWARNINGS: "ignore:Unverified HTTPS request"
       # ── LLM: OpenRouter ──────────────────────────────────────
       HERMES_INFERENCE_PROVIDER: ${HERMES_INFERENCE_PROVIDER:-openrouter}
       HERMES_INFERENCE_MODEL: ${HERMES_INFERENCE_MODEL}
