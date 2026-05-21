@@ -31,10 +31,10 @@ sleep 2
 
 # 5. Apply session_reset.mode using exec safely (using -i instead of -it to avoid TTY issues)
 echo "Applying session_reset.mode=$HERMES_SESSION_RESET_MODE to hermes-agent..."
-$CONTAINER_ENGINE exec -i hermes-agent hermes config set session_reset.mode "$HERMES_SESSION_RESET_MODE"
+$CONTAINER_ENGINE exec -i hermes-agent /opt/hermes/.venv/bin/hermes config set session_reset.mode "$HERMES_SESSION_RESET_MODE"
 
 # 6. Apply model.default using exec safely
 echo "Applying model.default=$HERMES_INFERENCE_MODEL to hermes-agent..."
-$CONTAINER_ENGINE exec -i hermes-agent hermes config set model.default "$HERMES_INFERENCE_MODEL"
+$CONTAINER_ENGINE exec -i hermes-agent /opt/hermes/.venv/bin/hermes config set model.default "$HERMES_INFERENCE_MODEL"
 
 echo "Configuration completed successfully!"
