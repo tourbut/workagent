@@ -103,6 +103,15 @@ if [ -z "$MATTERMOST_CONTAINER_ID" ]; then
 fi
 echo "Resolved Mattermost container ID: $MATTERMOST_CONTAINER_ID"
 
+# Resolve the actual running Postgres container ID dynamically
+echo "Resolving Postgres container ID..."
+POSTGRES_CONTAINER_ID=$($CONTAINER_ENGINE ps --filter "name=postgres" -q | head -n 1 | tr -d '\r\n')
+if [ -n "$POSTGRES_CONTAINER_ID" ]; then
+    echo "Resolved Postgres container ID: $POSTGRES_CONTAINER_ID"
+else
+    echo "WARNING: Postgres container could not be found dynamically. Direct DB updates will be bypassed."
+fi
+
 # Wrapper to execute Mattermost CLI internally using native container engine exec with mmctl local auth
 # Redirects stdin to /dev/null to prevent interactive container commands from hijacking the shell pipe stream.
 run_mm_cli() {
@@ -124,9 +133,14 @@ create_user_safely() {
     IS_ADMIN=$4
     FIRST_NAME=$5
     LAST_NAME=$6
+    POSITION=$7
 
     if run_mm_cli user search "$EMAIL" >/dev/null 2>&1 || run_mm_cli user search "$USERNAME" >/dev/null 2>&1; then
         echo "User '$USERNAME' ($EMAIL) already exists. Skipping creation."
+        if [ -n "$POSITION" ] && [ -n "$POSTGRES_CONTAINER_ID" ]; then
+            echo "Updating job title (position) for existing user '$USERNAME' to '$POSITION'..."
+            $CONTAINER_ENGINE exec -i "$POSTGRES_CONTAINER_ID" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "UPDATE users SET position = '$POSITION' WHERE username = '$USERNAME';" >/dev/null 2>&1 || echo "WARNING: Failed to update position in database."
+        fi
     else
         echo "Creating user '$USERNAME' (System Admin: $IS_ADMIN, First Name: '$FIRST_NAME', Last Name: '$LAST_NAME')..."
         
@@ -177,12 +191,17 @@ create_user_safely() {
             fi
         fi
         echo "User '$USERNAME' created successfully!"
+        
+        if [ -n "$POSITION" ] && [ -n "$POSTGRES_CONTAINER_ID" ]; then
+            echo "Updating job title (position) for '$USERNAME' to '$POSITION'..."
+            $CONTAINER_ENGINE exec -i "$POSTGRES_CONTAINER_ID" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "UPDATE users SET position = '$POSITION' WHERE username = '$USERNAME';" >/dev/null 2>&1 || echo "WARNING: Failed to update position in database."
+        fi
     fi
 }
 
 if [ -f "$USER_CSV" ]; then
     echo "Found CSV user list '$USER_CSV'. Bootstrapping bulk users..."
-    tail -n +2 "$USER_CSV" | while IFS=, read -r csv_email csv_username csv_password csv_is_admin csv_first_name csv_last_name; do
+    tail -n +2 "$USER_CSV" | while IFS=, read -r csv_email csv_username csv_password csv_is_admin csv_first_name csv_last_name csv_position; do
         # Clean carriage returns and spaces
         csv_email=$(echo "$csv_email" | tr -d '\r\n ')
         csv_username=$(echo "$csv_username" | tr -d '\r\n ')
@@ -190,14 +209,15 @@ if [ -f "$USER_CSV" ]; then
         csv_is_admin=$(echo "$csv_is_admin" | tr -d '\r\n ' | tr '[:upper:]' '[:lower:]')
         csv_first_name=$(echo "$csv_first_name" | tr -d '\r\n ')
         csv_last_name=$(echo "$csv_last_name" | tr -d '\r\n ')
+        csv_position=$(echo "$csv_position" | tr -d '\r\n')
 
         [ -z "$csv_username" ] && continue
 
-        create_user_safely "$csv_email" "$csv_username" "$csv_password" "$csv_is_admin" "$csv_first_name" "$csv_last_name"
+        create_user_safely "$csv_email" "$csv_username" "$csv_password" "$csv_is_admin" "$csv_first_name" "$csv_last_name" "$csv_position"
     done
 else
     echo "CSV user list '$USER_CSV' not found. Bootstrapping fallback default Admin user..."
-    create_user_safely "$INITIAL_ADMIN_EMAIL" "$INITIAL_ADMIN_USERNAME" "$INITIAL_ADMIN_PASSWORD" "true" "" ""
+    create_user_safely "$INITIAL_ADMIN_EMAIL" "$INITIAL_ADMIN_USERNAME" "$INITIAL_ADMIN_PASSWORD" "true" "" "" ""
 fi
 
 echo ""

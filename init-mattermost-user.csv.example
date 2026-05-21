@@ -1,0 +1,4 @@
+email,username,password,system_admin,first_name,last_name,position
+admin@example.com,admin,AdminPassword123!,true,길동,홍,직책명입력
+user1@example.com,user1,User1Password123!,false,Gildong,Hong,직책명입력
+user2@example.com,user2,User2Password123!,false,Chulsoo,Kim,직책명입력

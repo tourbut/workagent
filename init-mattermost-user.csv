@@ -1,4 +1,0 @@
-email,username,password,system_admin,first_name,last_name
-user1@example.com,user1,User1Password123!,false,Gildong,Hong
-user2@example.com,user2,User2Password123!,false,Chulsoo,Kim
-admin2@example.com,admin2,Admin2Password123!,true,길동,홍
