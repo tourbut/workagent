@@ -82,9 +82,9 @@ if [ -z "$MATTERMOST_CONTAINER_ID" ]; then
 fi
 echo "Resolved Mattermost container ID: $MATTERMOST_CONTAINER_ID"
 
-# Wrapper to execute Mattermost CLI internally using native container engine exec
+# Wrapper to execute Mattermost CLI internally using native container engine exec with mmctl local auth
 run_mm_cli() {
-    $CONTAINER_ENGINE exec -i "$MATTERMOST_CONTAINER_ID" /mattermost/bin/mattermost "$@"
+    $CONTAINER_ENGINE exec -i "$MATTERMOST_CONTAINER_ID" /mattermost/bin/mmctl --local "$@"
 }
 
 echo ""
