@@ -139,7 +139,7 @@ create_user_safely() {
         echo "User '$USERNAME' ($EMAIL) already exists. Skipping creation."
         if [ -n "$POSITION" ] && [ -n "$POSTGRES_CONTAINER_ID" ]; then
             echo "Updating job title (position) for existing user '$USERNAME' to '$POSITION'..."
-            $CONTAINER_ENGINE exec -i "$POSTGRES_CONTAINER_ID" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "UPDATE users SET position = '$POSITION' WHERE username = '$USERNAME';" >/dev/null 2>&1 || echo "WARNING: Failed to update position in database."
+            $CONTAINER_ENGINE exec -i "$POSTGRES_CONTAINER_ID" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "UPDATE users SET position = '$POSITION' WHERE username = '$USERNAME';" </dev/null >/dev/null 2>&1 || echo "WARNING: Failed to update position in database."
         fi
     else
         echo "Creating user '$USERNAME' (System Admin: $IS_ADMIN, First Name: '$FIRST_NAME', Last Name: '$LAST_NAME')..."
@@ -194,7 +194,7 @@ create_user_safely() {
         
         if [ -n "$POSITION" ] && [ -n "$POSTGRES_CONTAINER_ID" ]; then
             echo "Updating job title (position) for '$USERNAME' to '$POSITION'..."
-            $CONTAINER_ENGINE exec -i "$POSTGRES_CONTAINER_ID" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "UPDATE users SET position = '$POSITION' WHERE username = '$USERNAME';" >/dev/null 2>&1 || echo "WARNING: Failed to update position in database."
+            $CONTAINER_ENGINE exec -i "$POSTGRES_CONTAINER_ID" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "UPDATE users SET position = '$POSITION' WHERE username = '$USERNAME';" </dev/null >/dev/null 2>&1 || echo "WARNING: Failed to update position in database."
         fi
     fi
 }
