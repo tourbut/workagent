@@ -64,4 +64,8 @@ $CONTAINER_ENGINE exec -i hermes-agent /opt/hermes/.venv/bin/hermes config set s
 echo "Applying model.default=$HERMES_INFERENCE_MODEL to hermes-agent..."
 $CONTAINER_ENGINE exec -i hermes-agent /opt/hermes/.venv/bin/hermes config set model.default "$HERMES_INFERENCE_MODEL"
 
+# 7. Apply display.interim_assistant_messages=false to suppress tool progress messages in the channel
+echo "Applying display.interim_assistant_messages=false to hermes-agent..."
+$CONTAINER_ENGINE exec -i hermes-agent /opt/hermes/.venv/bin/hermes config set display.interim_assistant_messages false
+
 echo "Configuration completed successfully!"
