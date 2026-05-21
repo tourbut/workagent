@@ -72,12 +72,12 @@ until curl -fsS "http://localhost:${PORT_TO_CHECK}/api/v4/system/ping" >/dev/nul
 done
 echo "Mattermost is healthy and online!"
 
-# Resolve the actual running container ID for the mattermost service dynamically
+# Resolve the actual running container ID dynamically using native container engine filtering
 echo "Resolving Mattermost container ID..."
-MATTERMOST_CONTAINER_ID=$($COMPOSE_COMMAND -f $COMPOSE_FILE ps -q mattermost | head -n 1 | tr -d '\r\n')
+MATTERMOST_CONTAINER_ID=$($CONTAINER_ENGINE ps --filter "name=mattermost" -q | head -n 1 | tr -d '\r\n')
 
 if [ -z "$MATTERMOST_CONTAINER_ID" ]; then
-    echo "ERROR: Mattermost container could not be found or is not running."
+    echo "ERROR: Mattermost container could not be found via native '$CONTAINER_ENGINE ps'."
     exit 1
 fi
 echo "Resolved Mattermost container ID: $MATTERMOST_CONTAINER_ID"
