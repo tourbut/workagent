@@ -83,8 +83,9 @@ fi
 echo "Resolved Mattermost container ID: $MATTERMOST_CONTAINER_ID"
 
 # Wrapper to execute Mattermost CLI internally using native container engine exec with mmctl local auth
+# Redirects stdin to /dev/null to prevent interactive container commands from hijacking the shell pipe stream.
 run_mm_cli() {
-    $CONTAINER_ENGINE exec -i "$MATTERMOST_CONTAINER_ID" /mattermost/bin/mmctl --local "$@"
+    $CONTAINER_ENGINE exec -i "$MATTERMOST_CONTAINER_ID" /mattermost/bin/mmctl --local "$@" </dev/null
 }
 
 echo ""
@@ -199,7 +200,7 @@ else
     echo "Creating team '$INITIAL_TEAM_NAME'..."
     run_mm_cli team create \
         --name "$INITIAL_TEAM_NAME" \
-        --display_name "$INITIAL_TEAM_DISPLAY_NAME"
+        --display-name "$INITIAL_TEAM_DISPLAY_NAME"
     echo "Team created successfully!"
 fi
 
@@ -221,7 +222,7 @@ else
     run_mm_cli channel create \
         --team "$INITIAL_TEAM_NAME" \
         --name "$INITIAL_CHANNEL_NAME" \
-        --display_name "$INITIAL_CHANNEL_DISPLAY_NAME"
+        --display-name "$INITIAL_CHANNEL_DISPLAY_NAME"
     echo "Channel created successfully!"
 fi
 
