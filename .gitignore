@@ -33,3 +33,4 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 config/*/sslnhimc.cer
+init-mattermost-user.csv
