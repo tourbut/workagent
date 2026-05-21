@@ -213,7 +213,9 @@ if [ -f "$USER_CSV" ]; then
 
         [ -z "$csv_username" ] && continue
 
-        create_user_safely "$csv_email" "$csv_username" "$csv_password" "$csv_is_admin" "$csv_first_name" "$csv_last_name" "$csv_position"
+        # 사용자명 표기를 "성 이름" 순으로 보기 위해 firstname에 성(csv_last_name), lastname에 이름(csv_first_name)을 입력합니다.
+        create_user_safely "$csv_email" "$csv_username" "$csv_password" "$csv_is_admin" "$csv_last_name" "$csv_first_name" "$csv_position"
+
     done
 else
     echo "CSV user list '$USER_CSV' not found. Bootstrapping fallback default Admin user..."
