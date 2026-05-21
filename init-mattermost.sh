@@ -72,9 +72,19 @@ until curl -fsS "http://localhost:${PORT_TO_CHECK}/api/v4/system/ping" >/dev/nul
 done
 echo "Mattermost is healthy and online!"
 
-# Wrapper to execute Mattermost CLI internally
+# Resolve the actual running container ID for the mattermost service dynamically
+echo "Resolving Mattermost container ID..."
+MATTERMOST_CONTAINER_ID=$($COMPOSE_COMMAND -f $COMPOSE_FILE ps -q mattermost | head -n 1 | tr -d '\r\n')
+
+if [ -z "$MATTERMOST_CONTAINER_ID" ]; then
+    echo "ERROR: Mattermost container could not be found or is not running."
+    exit 1
+fi
+echo "Resolved Mattermost container ID: $MATTERMOST_CONTAINER_ID"
+
+# Wrapper to execute Mattermost CLI internally using native container engine exec
 run_mm_cli() {
-    $COMPOSE_COMMAND -f $COMPOSE_FILE exec -i mattermost /mattermost/bin/mattermost "$@"
+    $CONTAINER_ENGINE exec -i "$MATTERMOST_CONTAINER_ID" /mattermost/bin/mattermost "$@"
 }
 
 echo ""
