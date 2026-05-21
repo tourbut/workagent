@@ -22,12 +22,6 @@ INITIAL_ADMIN_USERNAME=${INITIAL_ADMIN_USERNAME:-admin}
 INITIAL_ADMIN_EMAIL=${INITIAL_ADMIN_EMAIL:-admin@example.com}
 INITIAL_ADMIN_PASSWORD=${INITIAL_ADMIN_PASSWORD:-AdminPassword123!}
 
-INITIAL_TEAM_NAME=${INITIAL_TEAM_NAME:-workagent}
-INITIAL_TEAM_DISPLAY_NAME=${INITIAL_TEAM_DISPLAY_NAME:-"WorkAgent Team"}
-
-INITIAL_CHANNEL_NAME=${INITIAL_CHANNEL_NAME:-dev}
-INITIAL_CHANNEL_DISPLAY_NAME=${INITIAL_CHANNEL_DISPLAY_NAME:-"Development"}
-
 BOT_USERNAME=${BOT_USERNAME:-hermes}
 BOT_DISPLAY_NAME=${BOT_DISPLAY_NAME:-"Hermes Agent"}
 BOT_DESCRIPTION=${BOT_DESCRIPTION:-"AI Agent bot for WorkAgent"}
@@ -159,17 +153,6 @@ create_user_safely() {
     fi
 }
 
-# Helper to read whitelisted usernames (either from CSV or fallback variables)
-get_provisioned_usernames() {
-    if [ -f "$USER_CSV" ]; then
-        tail -n +2 "$USER_CSV" | while IFS=, read -r _ username _ _ _ _; do
-            echo "$username" | tr -d '\r\n '
-        done
-    else
-        echo "$INITIAL_ADMIN_USERNAME"
-    fi
-}
-
 if [ -f "$USER_CSV" ]; then
     echo "Found CSV user list '$USER_CSV'. Bootstrapping bulk users..."
     tail -n +2 "$USER_CSV" | while IFS=, read -r csv_email csv_username csv_password csv_is_admin csv_first_name csv_last_name; do
@@ -192,49 +175,6 @@ fi
 
 echo ""
 echo "=================================================="
-echo "Step 2: Default Team (Project) Provisioning"
-echo "=================================================="
-if run_mm_cli team search "$INITIAL_TEAM_NAME" >/dev/null 2>&1; then
-    echo "Team '$INITIAL_TEAM_NAME' already exists. Skipping."
-else
-    echo "Creating team '$INITIAL_TEAM_NAME'..."
-    run_mm_cli team create \
-        --name "$INITIAL_TEAM_NAME" \
-        --display-name "$INITIAL_TEAM_DISPLAY_NAME"
-    echo "Team created successfully!"
-fi
-
-echo "Joining provisioned users to team..."
-get_provisioned_usernames | while read -r username; do
-    [ -z "$username" ] && continue
-    echo "Adding user '$username' to team '$INITIAL_TEAM_NAME'..."
-    run_mm_cli team add "$INITIAL_TEAM_NAME" "$username" || true
-done
-
-echo ""
-echo "=================================================="
-echo "Step 3: Default Channel Provisioning"
-echo "=================================================="
-if run_mm_cli channel search "$INITIAL_TEAM_NAME" "$INITIAL_CHANNEL_NAME" >/dev/null 2>&1; then
-    echo "Channel '$INITIAL_CHANNEL_NAME' already exists in team '$INITIAL_TEAM_NAME'. Skipping."
-else
-    echo "Creating channel '$INITIAL_CHANNEL_NAME'..."
-    run_mm_cli channel create \
-        --team "$INITIAL_TEAM_NAME" \
-        --name "$INITIAL_CHANNEL_NAME" \
-        --display-name "$INITIAL_CHANNEL_DISPLAY_NAME"
-    echo "Channel created successfully!"
-fi
-
-echo "Joining provisioned users to channel..."
-get_provisioned_usernames | while read -r username; do
-    [ -z "$username" ] && continue
-    echo "Adding user '$username' to channel '$INITIAL_TEAM_NAME:$INITIAL_CHANNEL_NAME'..."
-    run_mm_cli channel add "$INITIAL_TEAM_NAME:$INITIAL_CHANNEL_NAME" "$username" || true
-done
-
-echo ""
-echo "=================================================="
 echo "Step 4: Enabling Bot Accounts & Access Tokens"
 echo "=================================================="
 echo "Configuring Mattermost to allow Bot integration..."
@@ -253,10 +193,6 @@ else
     echo "Bot account created successfully!"
 fi
 
-echo "Joining bot user to team..."
-run_mm_cli team add "$INITIAL_TEAM_NAME" "$BOT_USERNAME" || true
-echo "Joining bot user to channel..."
-run_mm_cli channel add "$INITIAL_TEAM_NAME:$INITIAL_CHANNEL_NAME" "$BOT_USERNAME" || true
 
 echo ""
 echo "=================================================="
@@ -327,8 +263,6 @@ echo "Site URL:      ${MM_SERVICESETTINGS_SITEURL:-http://localhost:8065}"
 echo "Admin User:    $INITIAL_ADMIN_USERNAME"
 echo "Admin Pass:    $INITIAL_ADMIN_PASSWORD"
 echo "Admin Email:   $INITIAL_ADMIN_EMAIL"
-echo "Default Team:  $INITIAL_TEAM_NAME ($INITIAL_TEAM_DISPLAY_NAME)"
-echo "Default Channel: #$INITIAL_CHANNEL_NAME"
 echo ""
 echo "Hermes bot is set up, whitelisted, and tokenized."
 echo "You can now safely restart the stacks or start hermes-agent:"
