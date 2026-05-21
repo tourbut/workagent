@@ -64,9 +64,10 @@ echo "Checking if database & Mattermost are running..."
 $COMPOSE_COMMAND -f $COMPOSE_FILE up -d postgres mattermost
 
 # 4. Wait for Mattermost to be ready and responsive
-echo "Waiting for Mattermost API server to be healthy..."
-until $COMPOSE_COMMAND -f $COMPOSE_FILE exec -i mattermost curl -fsS http://localhost:8065/api/v4/system/ping >/dev/null 2>&1; do
-    echo "Mattermost migrations in progress... Retrying in 5 seconds."
+echo "Waiting for Mattermost API server to be healthy on port ${MATTERMOST_PORT:-8065}..."
+PORT_TO_CHECK=${MATTERMOST_PORT:-8065}
+until curl -fsS "http://localhost:${PORT_TO_CHECK}/api/v4/system/ping" >/dev/null 2>&1; do
+    echo "Mattermost is starting up or migrations are in progress... Retrying in 5 seconds."
     sleep 5
 done
 echo "Mattermost is healthy and online!"
