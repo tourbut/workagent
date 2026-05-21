@@ -3,7 +3,10 @@ set -e
 
 # 1. Load environment variables from .env if it exists
 if [ -f .env ]; then
-    export $(grep -v '^#' .env | xargs)
+    # Load env variables safely preserving spaces (like COMPOSE_COMMAND="podman compose")
+    set -a
+    . ./.env
+    set +a
 fi
 
 # 2. Set default values if not specified in .env
