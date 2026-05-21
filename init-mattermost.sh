@@ -1,4 +1,31 @@
 #!/bin/sh
+
+# Prevent sourcing to avoid SSH disconnection on error/exit
+is_sourced=0
+if [ -n "$BASH_VERSION" ]; then
+    [ "$0" != "${BASH_SOURCE[0]}" ] && is_sourced=1
+elif [ -n "$ZSH_VERSION" ]; then
+    [ "$0" != "${(%):-%x}" ] && is_sourced=1
+else
+    case "$0" in
+        sh|-sh|bash|-bash|zsh|-zsh|ksh|-ksh) is_sourced=1 ;;
+    esac
+fi
+
+if [ "$is_sourced" -eq 1 ]; then
+    echo "=================================================="
+    echo "WARNING: Sourcing this script is not allowed!"
+    echo "Sourcing ('source' or '.') will cause your SSH session"
+    echo "to disconnect if an error occurs (due to set -e or exit)."
+    echo ""
+    echo "Please run the script directly instead:"
+    echo "  sh init-mattermost.sh"
+    echo "  or"
+    echo "  ./init-mattermost.sh"
+    echo "=================================================="
+    return 1 2>/dev/null || exit 1
+fi
+
 set -e
 
 # Mattermost Bootstrapping & AI Bot Automagic Config Script
@@ -189,7 +216,8 @@ if run_mm_cli user search "$BOT_USERNAME" >/dev/null 2>&1; then
     echo "Bot user '$BOT_USERNAME' already exists. Skipping creation."
 else
     echo "Creating bot account '$BOT_USERNAME'..."
-    run_mm_cli bot create "$BOT_USERNAME" "$BOT_DISPLAY_NAME" "$BOT_DESCRIPTION" --system-admin
+    run_mm_cli bot create "$BOT_USERNAME" --display-name "$BOT_DISPLAY_NAME" --description "$BOT_DESCRIPTION"
+    run_mm_cli roles system-admin "$BOT_USERNAME"
     echo "Bot account created successfully!"
 fi
 

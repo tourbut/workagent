@@ -1,4 +1,31 @@
 #!/bin/sh
+
+# Prevent sourcing to avoid SSH disconnection on error/exit
+is_sourced=0
+if [ -n "$BASH_VERSION" ]; then
+    [ "$0" != "${BASH_SOURCE[0]}" ] && is_sourced=1
+elif [ -n "$ZSH_VERSION" ]; then
+    [ "$0" != "${(%):-%x}" ] && is_sourced=1
+else
+    case "$0" in
+        sh|-sh|bash|-bash|zsh|-zsh|ksh|-ksh) is_sourced=1 ;;
+    esac
+fi
+
+if [ "$is_sourced" -eq 1 ]; then
+    echo "=================================================="
+    echo "WARNING: Sourcing this script is not allowed!"
+    echo "Sourcing ('source' or '.') will cause your SSH session"
+    echo "to disconnect if an error occurs (due to set -e or exit)."
+    echo ""
+    echo "Please run the script directly instead:"
+    echo "  sh init_config.sh"
+    echo "  or"
+    echo "  ./init_config.sh"
+    echo "=================================================="
+    return 1 2>/dev/null || exit 1
+fi
+
 set -e
 
 # 1. Load environment variables from .env if it exists

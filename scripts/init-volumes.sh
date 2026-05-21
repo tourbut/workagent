@@ -3,6 +3,33 @@
 # - Mattermost 컨테이너는 일부 디렉터리가 없으면 권한 문제로 부팅에 실패할 수 있다.
 # - hermes-agent 는 /opt/data/config.yaml 에서 model/provider 를 읽으므로 첫 실행 전에 만들어 둔다.
 # - 본 스크립트는 멱등이다 (이미 있으면 건드리지 않는다).
+
+# Prevent sourcing to avoid SSH disconnection on error/exit
+is_sourced=0
+if [ -n "$BASH_VERSION" ]; then
+    [ "$0" != "${BASH_SOURCE[0]}" ] && is_sourced=1
+elif [ -n "$ZSH_VERSION" ]; then
+    [ "$0" != "${(%):-%x}" ] && is_sourced=1
+else
+    case "$0" in
+        sh|-sh|bash|-bash|zsh|-zsh|ksh|-ksh) is_sourced=1 ;;
+    esac
+fi
+
+if [ "$is_sourced" -eq 1 ]; then
+    echo "=================================================="
+    echo "WARNING: Sourcing this script is not allowed!"
+    echo "Sourcing ('source' or '.') will cause your SSH session"
+    echo "to disconnect if an error occurs (due to set -e or exit)."
+    echo ""
+    echo "Please run the script directly instead:"
+    echo "  bash scripts/init-volumes.sh"
+    echo "  or"
+    echo "  ./scripts/init-volumes.sh"
+    echo "=================================================="
+    return 1 2>/dev/null || exit 1
+fi
+
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
