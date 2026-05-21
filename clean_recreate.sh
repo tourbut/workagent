@@ -41,7 +41,8 @@ $COMPOSE_COMMAND -f $COMPOSE_FILE up -d
 # 6. Apply initial configurations (session_reset.mode, etc.)
 echo "\n=== [5/5] Re-applying configuration options ==="
 if [ -f "./init_config.sh" ]; then
-    ./init_config.sh
+    # 실행 권한이 누락된 원격 서버 환경을 위해 sh 인터프리터로 직접 실행
+    sh ./init_config.sh
 else
     echo "Warning: init_config.sh not found. Skipping config application."
 fi
