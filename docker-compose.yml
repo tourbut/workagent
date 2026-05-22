@@ -109,10 +109,9 @@ services:
       - ./config/hermes/httpcore_anyio.py:/opt/hermes/.venv/lib/python3.13/site-packages/httpcore/backends/anyio.py:ro
       - ./config/hermes/httpcore_sync.py:/opt/hermes/.venv/lib/python3.13/site-packages/httpcore/backends/sync.py:ro
       - ./config/hermes/urllib3_ssl_.py:/opt/hermes/.venv/lib/python3.13/site-packages/urllib3/util/ssl_.py:ro
-    # 게이트웨이 API/대시보드 포트는 기본적으로 외부에 노출하지 않는다.
-    # 필요하면 docker-compose.override.yml 에서 ports 를 추가.
-    # ports:
-    #   - "${HERMES_GATEWAY_PORT:-8642}:8642"
+    # 게이트웨이 API/대시보드 포트를 외부에 노출합니다.
+    ports:
+      - "${HERMES_GATEWAY_PORT:-8642}:8642"
     environment:
       TZ: ${TZ:-Asia/Seoul}
       # ── SSL CA Certificates ──────────────────────────────────
