@@ -134,12 +134,17 @@ create_user_safely() {
     FIRST_NAME=$5
     LAST_NAME=$6
     POSITION=$7
+    NICKNAME=$8
 
     if run_mm_cli user search "$EMAIL" >/dev/null 2>&1 || run_mm_cli user search "$USERNAME" >/dev/null 2>&1; then
         echo "User '$USERNAME' ($EMAIL) already exists. Skipping creation."
         if [ -n "$POSITION" ] && [ -n "$POSTGRES_CONTAINER_ID" ]; then
             echo "Updating job title (position) for existing user '$USERNAME' to '$POSITION'..."
             $CONTAINER_ENGINE exec -i "$POSTGRES_CONTAINER_ID" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "UPDATE users SET position = '$POSITION' WHERE username = '$USERNAME';" </dev/null >/dev/null 2>&1 || echo "WARNING: Failed to update position in database."
+        fi
+        if [ -n "$NICKNAME" ] && [ -n "$POSTGRES_CONTAINER_ID" ]; then
+            echo "Updating nickname for existing user '$USERNAME' to '$NICKNAME'..."
+            $CONTAINER_ENGINE exec -i "$POSTGRES_CONTAINER_ID" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "UPDATE users SET nickname = '$NICKNAME' WHERE username = '$USERNAME';" </dev/null >/dev/null 2>&1 || echo "WARNING: Failed to update nickname in database."
         fi
     else
         echo "Creating user '$USERNAME' (System Admin: $IS_ADMIN, First Name: '$FIRST_NAME', Last Name: '$LAST_NAME')..."
@@ -196,12 +201,16 @@ create_user_safely() {
             echo "Updating job title (position) for '$USERNAME' to '$POSITION'..."
             $CONTAINER_ENGINE exec -i "$POSTGRES_CONTAINER_ID" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "UPDATE users SET position = '$POSITION' WHERE username = '$USERNAME';" </dev/null >/dev/null 2>&1 || echo "WARNING: Failed to update position in database."
         fi
+        if [ -n "$NICKNAME" ] && [ -n "$POSTGRES_CONTAINER_ID" ]; then
+            echo "Updating nickname for '$USERNAME' to '$NICKNAME'..."
+            $CONTAINER_ENGINE exec -i "$POSTGRES_CONTAINER_ID" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "UPDATE users SET nickname = '$NICKNAME' WHERE username = '$USERNAME';" </dev/null >/dev/null 2>&1 || echo "WARNING: Failed to update nickname in database."
+        fi
     fi
 }
 
 if [ -f "$USER_CSV" ]; then
     echo "Found CSV user list '$USER_CSV'. Bootstrapping bulk users..."
-    tail -n +2 "$USER_CSV" | while IFS=, read -r csv_email csv_username csv_password csv_is_admin csv_first_name csv_last_name csv_position; do
+    tail -n +2 "$USER_CSV" | while IFS=, read -r csv_email csv_username csv_password csv_is_admin csv_first_name csv_last_name csv_position csv_nickname; do
         # Clean carriage returns and spaces
         csv_email=$(echo "$csv_email" | tr -d '\r\n ')
         csv_username=$(echo "$csv_username" | tr -d '\r\n ')
@@ -210,16 +219,17 @@ if [ -f "$USER_CSV" ]; then
         csv_first_name=$(echo "$csv_first_name" | tr -d '\r\n ')
         csv_last_name=$(echo "$csv_last_name" | tr -d '\r\n ')
         csv_position=$(echo "$csv_position" | tr -d '\r\n')
+        csv_nickname=$(echo "$csv_nickname" | tr -d '\r\n')
 
         [ -z "$csv_username" ] && continue
 
         # 사용자명 표기를 "성 이름" 순으로 보기 위해 firstname에 성(csv_last_name), lastname에 이름(csv_first_name)을 입력합니다.
-        create_user_safely "$csv_email" "$csv_username" "$csv_password" "$csv_is_admin" "$csv_last_name" "$csv_first_name" "$csv_position"
+        create_user_safely "$csv_email" "$csv_username" "$csv_password" "$csv_is_admin" "$csv_last_name" "$csv_first_name" "$csv_position" "$csv_nickname"
 
     done
 else
     echo "CSV user list '$USER_CSV' not found. Bootstrapping fallback default Admin user..."
-    create_user_safely "$INITIAL_ADMIN_EMAIL" "$INITIAL_ADMIN_USERNAME" "$INITIAL_ADMIN_PASSWORD" "true" "" "" ""
+    create_user_safely "$INITIAL_ADMIN_EMAIL" "$INITIAL_ADMIN_USERNAME" "$INITIAL_ADMIN_PASSWORD" "true" "" "" "" ""
 fi
 
 echo ""

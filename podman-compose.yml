@@ -109,7 +109,7 @@ services:
     volumes:
       - ./volumes/hermes:/opt/data:U,z
       - ./config/hermes/memory_tool.py:/opt/hermes/tools/memory_tool.py:ro,z
-      #- ./config/hermes/mattermost.py:/opt/hermes/gateway/platforms/mattermost.py:ro,z
+      - ./config/hermes/mattermost.py:/opt/hermes/gateway/platforms/mattermost.py:ro,z
       #- ./config/hermes/sslnhimc.cer:/etc/ssl/certs/sslnhimc.cer:ro,z
       #- ./config/hermes/httpx_config.py:/opt/hermes/.venv/lib/python3.13/site-packages/httpx/_config.py:ro,z
       #- ./config/hermes/httpcore_anyio.py:/opt/hermes/.venv/lib/python3.13/site-packages/httpcore/backends/anyio.py:ro,z

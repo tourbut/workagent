@@ -104,7 +104,7 @@ services:
       - ./volumes/hermes:/opt/data:rw
       - ./config/hermes/memory_tool.py:/opt/hermes/tools/memory_tool.py:ro
       - ./config/hermes/sslnhimc.cer:/etc/ssl/certs/sslnhimc.cer:ro
-      #- ./config/hermes/mattermost.py:/opt/hermes/gateway/platforms/mattermost.py:ro
+      - ./config/hermes/mattermost.py:/opt/hermes/gateway/platforms/mattermost.py:ro
       - ./config/hermes/httpx_config.py:/opt/hermes/.venv/lib/python3.13/site-packages/httpx/_config.py:ro
       - ./config/hermes/httpcore_anyio.py:/opt/hermes/.venv/lib/python3.13/site-packages/httpcore/backends/anyio.py:ro
       - ./config/hermes/httpcore_sync.py:/opt/hermes/.venv/lib/python3.13/site-packages/httpcore/backends/sync.py:ro
