@@ -56,16 +56,24 @@ $COMPOSE_COMMAND -f $COMPOSE_FILE up -d --no-deps hermes-agent
 # 4. Wait a brief moment for the container to become available (if starting fresh)
 sleep 2
 
-# 5. Apply session_reset.mode using exec safely (using -i instead of -it to avoid TTY issues)
+# 5. Apply session_reset.mode using exec safely (using -u 10000 to keep correct file ownership)
 echo "Applying session_reset.mode=$HERMES_SESSION_RESET_MODE to hermes-agent..."
-$CONTAINER_ENGINE exec -i hermes-agent /opt/hermes/.venv/bin/hermes config set session_reset.mode "$HERMES_SESSION_RESET_MODE"
+$CONTAINER_ENGINE exec -u 10000 -i hermes-agent /opt/hermes/.venv/bin/hermes config set session_reset.mode "$HERMES_SESSION_RESET_MODE"
 
 # 6. Apply model.default using exec safely
 echo "Applying model.default=$HERMES_INFERENCE_MODEL to hermes-agent..."
-$CONTAINER_ENGINE exec -i hermes-agent /opt/hermes/.venv/bin/hermes config set model.default "$HERMES_INFERENCE_MODEL"
+$CONTAINER_ENGINE exec -u 10000 -i hermes-agent /opt/hermes/.venv/bin/hermes config set model.default "$HERMES_INFERENCE_MODEL"
 
 # 7. Apply display.interim_assistant_messages=false to suppress tool progress messages in the channel
 echo "Applying display.interim_assistant_messages=false to hermes-agent..."
-$CONTAINER_ENGINE exec -i hermes-agent /opt/hermes/.venv/bin/hermes config set display.interim_assistant_messages false
+$CONTAINER_ENGINE exec -u 10000 -i hermes-agent /opt/hermes/.venv/bin/hermes config set display.interim_assistant_messages false
+
+# 8. Post-config ownership/permission safeguard for rootless Podman
+if [ "$CONTAINER_ENGINE" = "podman" ]; then
+    echo "Securing config.yaml permissions for Podman rootless namespace..."
+    podman unshare chown 10000:10000 volumes/hermes/config.yaml 2>/dev/null || true
+    podman unshare chmod 644 volumes/hermes/config.yaml 2>/dev/null || true
+fi
 
 echo "Configuration completed successfully!"
+
