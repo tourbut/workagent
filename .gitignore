@@ -34,3 +34,5 @@ __pycache__/
 .mypy_cache/
 config/*/sslnhimc.cer
 init-mattermost-user.csv
+.env.dev
+.env.prd

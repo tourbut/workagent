@@ -814,6 +814,32 @@ class MattermostAdapter(BasePlatformAdapter):
         # Thread support: if the post is in a thread, use root_id.
         thread_id = post.get("root_id") or None
 
+        # Thread author validation: restrict response to the thread's root post creator
+        if thread_id:
+            root_post = await self._api_get(f"posts/{thread_id}")
+            if root_post and "user_id" in root_post:
+                root_user_id = root_post["user_id"]
+                if root_user_id != sender_id and root_user_id != self._bot_user_id:
+                    # Fetch root user display name for a friendlier message
+                    root_user_info = await self._api_get(f"users/{root_user_id}")
+                    if root_user_info:
+                        root_name = root_user_info.get("nickname") or root_user_info.get("username") or "원작자"
+                    else:
+                        root_name = "원작자"
+                    
+                    logger.warning(
+                        "Mattermost: Thread access blocked. Sender %s (%s) tried to talk in thread owned by %s (%s)",
+                        sender_name, sender_id, root_name, root_user_id
+                    )
+                    # Send an informative message in the thread
+                    err_msg = f"⚠️ **알림**: 이 스레드는 원작자( @{root_name} ) 님만 AI 에이전트와 대화할 수 있도록 제한되어 있습니다."
+                    await self.send(
+                        chat_id=channel_id,
+                        content=err_msg,
+                        reply_to=thread_id
+                    )
+                    return
+
         # Determine message type.
         file_ids = post.get("file_ids") or []
         msg_type = MessageType.TEXT
