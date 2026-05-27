@@ -2,13 +2,78 @@
 import os
 import sys
 import argparse
-import requests
+import json
+import urllib.request
+import urllib.error
+import mimetypes
+import uuid
+
+def encode_multipart_formdata(fields, files):
+    boundary = f"----HermesFormBoundary{uuid.uuid4().hex}"
+    body = []
+    
+    # Add text fields
+    for key, value in fields.items():
+        body.append(f"--{boundary}".encode("utf-8"))
+        body.append(f'Content-Disposition: form-data; name="{key}"'.encode("utf-8"))
+        body.append(b"")
+        body.append(str(value).encode("utf-8"))
+        
+    # Add files
+    for key, (filename, file_bytes) in files.items():
+        mime_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+        body.append(f"--{boundary}".encode("utf-8"))
+        body.append(f'Content-Disposition: form-data; name="{key}"; filename="{filename}"'.encode("utf-8"))
+        body.append(f"Content-Type: {mime_type}".encode("utf-8"))
+        body.append(b"")
+        body.append(file_bytes)
+        
+    body.append(f"--{boundary}--".encode("utf-8"))
+    body.append(b"")
+    
+    content_type = f"multipart/form-data; boundary={boundary}"
+    return content_type, b"\r\n".join(body)
+
+def load_fallback_env():
+    # Target files to look for configuration
+    paths = [
+        "/opt/data/.env",
+        "/opt/hermes/.env",
+        ".env",
+        "../.env",
+        "../../.env"
+    ]
+    env_vars = {}
+    for p in paths:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        # Skip comment and empty lines
+                        if line and not line.startswith("#") and "=" in line:
+                            parts = line.split("=", 1)
+                            if len(parts) == 2:
+                                k = parts[0].strip()
+                                v = parts[1].strip().strip("'").strip('"')
+                                env_vars[k] = v
+            except Exception:
+                pass
+    return env_vars
 
 def upload_report(file_path, channel_id=None, root_id=None, message=None):
-    # 1. 환경변수 확인
-    mm_url = os.getenv("MATTERMOST_URL")
-    mm_token = os.getenv("MATTERMOST_TOKEN")
+    # 1. 환경변수 확인 (우선순위: 실제 프로세스 환경변수 -> .env 폴백 파일들)
+    mm_url = os.getenv("MATTERMOST_URL") or os.getenv("HERMES_MATTERMOST_URL")
+    mm_token = os.getenv("MATTERMOST_TOKEN") or os.getenv("HERMES_MATTERMOST_TOKEN")
     
+    if not mm_url or not mm_token:
+        print("[*] 시스템 환경변수 누락 감지. .env 파일로부터 설정을 로드합니다...")
+        fallback_vars = load_fallback_env()
+        if not mm_url:
+            mm_url = fallback_vars.get("MATTERMOST_URL") or fallback_vars.get("HERMES_MATTERMOST_URL")
+        if not mm_token:
+            mm_token = fallback_vars.get("MATTERMOST_TOKEN") or fallback_vars.get("HERMES_MATTERMOST_TOKEN")
+            
     if not mm_url:
         print("에러: MATTERMOST_URL 환경변수가 설정되지 않았습니다.", file=sys.stderr)
         return False
@@ -38,24 +103,36 @@ def upload_report(file_path, channel_id=None, root_id=None, message=None):
 
     # 4. 파일 업로드 API 요청 (POST /api/v4/files)
     upload_url = f"{mm_url}/api/v4/files"
-    headers = {"Authorization": f"Bearer {mm_token}"}
     
     print(f"[*] 파일을 업로드 중입니다: {file_path}")
     try:
         with open(file_path, "rb") as f:
-            files = {
-                "files": (os.path.basename(file_path), f)
-            }
-            data = {
-                "channel_id": channel_id
-            }
-            response = requests.post(upload_url, headers=headers, files=files, data=data)
+            file_bytes = f.read()
             
-        if response.status_code != 201:
-            print(f"에러: 파일 업로드에 실패했습니다. (HTTP {response.status_code}) - {response.text}", file=sys.stderr)
+        fields = {"channel_id": channel_id}
+        files = {"files": (os.path.basename(file_path), file_bytes)}
+        
+        content_type, body_bytes = encode_multipart_formdata(fields, files)
+        
+        req = urllib.request.Request(
+            upload_url,
+            data=body_bytes,
+            headers={
+                "Authorization": f"Bearer {mm_token}",
+                "Content-Type": content_type
+            },
+            method="POST"
+        )
+        
+        try:
+            with urllib.request.urlopen(req) as response:
+                res_body = response.read().decode("utf-8")
+                res_json = json.loads(res_body)
+        except urllib.error.HTTPError as he:
+            err_body = he.read().decode("utf-8")
+            print(f"에러: 파일 업로드에 실패했습니다. (HTTP {he.code}) - {err_body}", file=sys.stderr)
             return False
             
-        res_json = response.json()
         file_infos = res_json.get("file_infos", [])
         if not file_infos:
             print("에러: 파일 업로드 응답에 file_infos가 비어있습니다.", file=sys.stderr)
@@ -85,14 +162,25 @@ def upload_report(file_path, channel_id=None, root_id=None, message=None):
 
     print(f"[*] 포스트를 생성합니다. (Channel: {channel_id}, Root Thread: {root_id or '없음'})")
     try:
-        response = requests.post(post_url, headers=headers, json=post_data)
-        if response.status_code != 201:
-            print(f"에러: 포스트 생성에 실패했습니다. (HTTP {response.status_code}) - {response.text}", file=sys.stderr)
+        req_post = urllib.request.Request(
+            post_url,
+            data=json.dumps(post_data).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {mm_token}",
+                "Content-Type": "application/json"
+            },
+            method="POST"
+        )
+        
+        try:
+            with urllib.request.urlopen(req_post) as response:
+                print("[+] 성공적으로 Mattermost에 보고서 파일과 포스트를 업로드했습니다!")
+                return True
+        except urllib.error.HTTPError as he:
+            err_body = he.read().decode("utf-8")
+            print(f"에러: 포스트 생성에 실패했습니다. (HTTP {he.code}) - {err_body}", file=sys.stderr)
             return False
             
-        print("[+] 성공적으로 Mattermost에 보고서 파일과 포스트를 업로드했습니다!")
-        return True
-        
     except Exception as e:
         print(f"에러: 포스트 전송 중 예외 발생: {str(e)}", file=sys.stderr)
         return False
