@@ -894,12 +894,26 @@ class MattermostAdapter(BasePlatformAdapter):
             elif media_types:
                 msg_type = MessageType.DOCUMENT
 
+        # Session continuity: in thread-reply mode, anchor non-DM root posts
+        # to their own post_id so the root post and its subsequent thread
+        # replies share a single hermes session. Without this, the root post
+        # is seen with thread_id=None while replies arrive with
+        # thread_id=<root_post_id>, producing two separate session files and
+        # breaking interview flow continuity.
+        source_thread_id = thread_id
+        if (
+            self._reply_mode == "thread"
+            and channel_type_raw != "D"
+            and source_thread_id is None
+        ):
+            source_thread_id = post_id
+
         source = self.build_source(
             chat_id=channel_id,
             chat_type=chat_type,
             user_id=sender_id,
             user_name=sender_name,
-            thread_id=thread_id,
+            thread_id=source_thread_id,
         )
 
         # Per-channel ephemeral prompt
