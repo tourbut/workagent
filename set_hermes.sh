@@ -24,7 +24,7 @@ fi
 set -euo pipefail
 
 # 1. 프로젝트 루트로 이동
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 cd "$ROOT_DIR"
 
 # 2. .env 환경변수 로드
@@ -60,11 +60,18 @@ fi
 
 # 4. 바인드 마운트된 로컬 볼륨 경로(volumes/hermes)로 덮어쓰기 복사
 echo "[*] 로컬 볼륨 경로($DST_VOL_DIR)로 파일 복사 중..."
-mkdir -p "$DST_VOL_DIR"
-mkdir -p "$DST_VOL_SKILL_DIR"
-
-cp -p "$SRC_SOUL" "$DST_VOL_SOUL"
-cp -pr "$SRC_SKILL"/. "$DST_VOL_SKILL_DIR"/
+if [ "$CONTAINER_ENGINE" = "podman" ] && command -v podman >/dev/null 2>&1; then
+    echo "[*] Podman unshare 네임스페이스를 활용해 권한 문제를 예방하며 볼륨 복사를 수행합니다..."
+    podman unshare mkdir -p "$DST_VOL_DIR"
+    podman unshare mkdir -p "$DST_VOL_SKILL_DIR"
+    podman unshare cp "$SRC_SOUL" "$DST_VOL_SOUL"
+    podman unshare cp -pr "$SRC_SKILL"/. "$DST_VOL_SKILL_DIR"/
+else
+    mkdir -p "$DST_VOL_DIR"
+    mkdir -p "$DST_VOL_SKILL_DIR"
+    cp -p "$SRC_SOUL" "$DST_VOL_SOUL"
+    cp -pr "$SRC_SKILL"/. "$DST_VOL_SKILL_DIR"/
+fi
 
 echo "[+] 로컬 볼륨 동기화 복사 완료!"
 
