@@ -123,6 +123,7 @@ services:
       # ── Dashboard Configuration ──────────────────────────────
       HERMES_DASHBOARD: ${HERMES_DASHBOARD:-0}
       HERMES_DASHBOARD_PORT: ${HERMES_DASHBOARD_PORT:-9119}
+      HERMES_DASHBOARD_INSECURE: ${HERMES_DASHBOARD_INSECURE:-0}
       TZ: ${TZ:-Asia/Seoul}
       # ── SSL CA Certificates ──────────────────────────────────
       #SSL_CERT_FILE: /etc/ssl/certs/sslnhimc.cer
